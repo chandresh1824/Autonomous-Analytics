@@ -1,0 +1,405 @@
+<title>Autonomous Analytics Runbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column; diagrams are the page's centre of gravity, tables follow as reference.
+   Colour: cool paper, ink-blue text; five system colours (LLM, App DB, Source DB, vector store, sign-in) reused in every figure. */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --fg: #14202c; --muted: #536373; --line: #d3dbe4; --line2: #8a9bad;
+  --llm: #4338ca; --llm-t: #e8e7fb; --app: #0f766e; --app-t: #d9f2ef; --src: #15803d; --src-t: #def2e4;
+  --vec: #a5500a; --vec-t: #faead2; --auth: #a21caf; --auth-t: #f5e1f7; --warn: #b42318; --warn-t: #fce6e3;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1319; --surface: #151d26; --fg: #e2e9f0; --muted: #93a3b3; --line: #2a3745; --line2: #5d7186;
+  --llm: #a9a4ff; --llm-t: #25234a; --app: #4fd1c5; --app-t: #11393a; --src: #72d68f; --src-t: #14341f;
+  --vec: #f0b45f; --vec-t: #3e2c12; --auth: #e9a0f3; --auth-t: #3b1a41; --warn: #ff9a90; --warn-t: #451c19; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0d1319; --surface: #151d26; --fg: #e2e9f0; --muted: #93a3b3; --line: #2a3745; --line2: #5d7186;
+  --llm: #a9a4ff; --llm-t: #25234a; --app: #4fd1c5; --app-t: #11393a; --src: #72d68f; --src-t: #14341f;
+  --vec: #f0b45f; --vec-t: #3e2c12; --auth: #e9a0f3; --auth-t: #3b1a41; --warn: #ff9a90; --warn-t: #451c19; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.55; padding-inline: 16px; padding-block: 28px 64px; }
+main { max-width: 1000px; margin-inline: auto; display: flex; flex-direction: column; gap: 44px; }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; margin: 0 0 8px; font-weight: 600; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: 21px; line-height: 1.25; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+p { margin: 0 0 10px; max-width: 70ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 62ch; margin-bottom: 18px; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 0; }
+nav a { color: var(--fg); text-decoration: none; border-bottom: 1px dotted var(--line2); }
+nav a:hover { border-bottom-style: solid; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 0; }
+.facts div { border-left: 3px solid var(--line2); padding: 2px 0 2px 12px; }
+.facts dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.facts dd { margin: 2px 0 0; font-size: 14px; }
+figure { margin: 14px 0 0; }
+.fig { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.fig svg { display: block; min-width: 880px; width: 100%; height: auto; color: var(--fg); }
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+/* svg parts */
+.box { fill: var(--surface); stroke: var(--line2); stroke-width: 1.25; }
+.b-llm { fill: var(--llm-t); stroke: var(--llm); } .b-app { fill: var(--app-t); stroke: var(--app); }
+.b-src { fill: var(--src-t); stroke: var(--src); } .b-vec { fill: var(--vec-t); stroke: var(--vec); }
+.b-auth { fill: var(--auth-t); stroke: var(--auth); } .b-warn { fill: var(--warn-t); stroke: var(--warn); }
+.tt { font: 600 13px var(--sans); fill: currentColor; } .tm { font: 500 12px var(--mono); fill: currentColor; }
+.td { font: 400 11.5px var(--sans); fill: var(--muted); } .tl { font: 400 11px var(--sans); fill: var(--muted); }
+.tw { font: 500 11.5px var(--sans); fill: var(--warn); }
+.arr { fill: none; stroke: currentColor; stroke-width: 1.5; marker-end: url(#a); }
+.arr-w { fill: none; stroke: var(--warn); stroke-width: 1.5; marker-end: url(#aw); }
+.sep { stroke: var(--line2); stroke-width: 1; stroke-dasharray: 3 3; }
+.chip { stroke-width: 1; } .chip-t { font: 500 11px var(--sans); fill: currentColor; }
+/* tables */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+td.w { white-space: normal; font-family: var(--sans); font-size: 13.5px; }
+.tag { font: 500 11px var(--sans); padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); white-space: nowrap; }
+.tag.pub { border-color: var(--app); color: var(--app); } .tag.req { border-color: var(--warn); color: var(--warn); }
+.gaps { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }
+.gaps li { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 6px; padding: 10px 14px; }
+.gaps li.ok { border-left-color: var(--line2); }
+.gaps b { font-weight: 600; }
+.note { font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; max-width: 80ch; }
+section { min-width: 0; }
+@media (max-width: 520px) { body { font-size: 14.5px; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+    <marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b42318"/></marker>
+  </defs>
+</svg>
+
+<main>
+  <header>
+    <h1>Autonomous Analytics Runbook</h1>
+    <p class="lede">A business user types a question; the backend plans it, finds the matching KPI, writes and checks a SQL query, runs it on the right database and returns a written answer with a chart. This page shows the functions behind that and what a deployer has to provide.</p>
+    <nav aria-label="Sections">
+      <a href="#topology">What talks to what</a><a href="#startup">Startup</a><a href="#request">One question end to end</a>
+      <a href="#model">Model lifecycle</a><a href="#config">Configuration</a><a href="#api">Endpoints and logs</a>
+      <a href="#break">When it breaks</a><a href="#gaps">Gaps in the deploy files</a>
+    </nav>
+  </header>
+
+  <section aria-label="At a glance">
+    <dl class="facts">
+      <div><dt>Containers</dt><dd>Two: frontend (nginx, static React build) and backend (Node 22, Express).</dd></div>
+      <div><dt>You must provide</dt><dd>App MySQL, an LLM server with embeddings, a Microsoft Entra app registration.</dd></div>
+      <div><dt>State</dt><dd>App MySQL (5 tables) and one volume holding the vector index. The containers hold nothing else.</dd></div>
+      <div><dt>Answer time</dt><dd>1 to 5 minutes per question on a local LLM. Every step is a model call.</dd></div>
+    </dl>
+  </section>
+
+  <section id="topology">
+    <h2>What talks to what</h2>
+    <p>The browser calls two things directly. Only the backend reaches the databases, the LLM server and the vector index.</p>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 960 420" role="img" aria-label="The browser loads the static app from nginx, signs in with Microsoft Entra ID, and sends API calls with a bearer token to the backend. The backend verifies the token against Entra's keys and talks to the app database, the source databases, the LLM server and the vector store.">
+          <!-- browser -->
+          <rect class="box" x="20" y="165" width="140" height="70" rx="8"/>
+          <text class="tt" x="90" y="195" text-anchor="middle">Browser</text>
+          <text class="td" x="90" y="214" text-anchor="middle">React app + MSAL</text>
+          <!-- entra -->
+          <rect class="box b-auth" x="240" y="40" width="180" height="70" rx="8"/>
+          <text class="tt" x="330" y="68" text-anchor="middle">Microsoft Entra ID</text>
+          <text class="td" x="330" y="88" text-anchor="middle">sign-in and signing keys</text>
+          <!-- frontend -->
+          <rect class="box" x="240" y="165" width="180" height="70" rx="8"/>
+          <text class="tt" x="330" y="190" text-anchor="middle">Frontend · nginx</text>
+          <text class="td" x="330" y="208" text-anchor="middle">container :80, host :5173</text>
+          <text class="td" x="330" y="224" text-anchor="middle">static files only</text>
+          <!-- backend -->
+          <rect class="box" x="490" y="40" width="180" height="310" rx="8"/>
+          <text class="tt" x="580" y="66" text-anchor="middle">Backend</text>
+          <text class="td" x="580" y="84" text-anchor="middle">Node 22 · Express :8000</text>
+          <line class="sep" x1="506" y1="100" x2="654" y2="100"/>
+          <text class="tm" x="580" y="124" text-anchor="middle">requireUser</text>
+          <text class="td" x="580" y="142" text-anchor="middle">checks the Entra token</text>
+          <text class="tm" x="580" y="176" text-anchor="middle">routers</text>
+          <text class="td" x="580" y="194" text-anchor="middle">chat · connections</text>
+          <text class="td" x="580" y="209" text-anchor="middle">semantic-model · kpis</text>
+          <text class="td" x="580" y="224" text-anchor="middle">metrics · dashboard · logs</text>
+          <text class="tm" x="580" y="258" text-anchor="middle">DeepAgent</text>
+          <text class="td" x="580" y="276" text-anchor="middle">planner · resolver</text>
+          <text class="td" x="580" y="291" text-anchor="middle">SQL agents · validator</text>
+          <text class="tm" x="580" y="328" text-anchor="middle">/api/health</text>
+          <text class="td" x="580" y="343" text-anchor="middle">no login needed</text>
+          <!-- right column -->
+          <rect class="box b-app" x="800" y="40" width="140" height="60" rx="8"/>
+          <text class="tt" x="870" y="66" text-anchor="middle">App DB (MySQL)</text>
+          <text class="td" x="870" y="84" text-anchor="middle">DB_* · 5 tables</text>
+          <rect class="box b-src" x="800" y="125" width="140" height="60" rx="8"/>
+          <text class="tt" x="870" y="151" text-anchor="middle">Source DBs (MySQL)</text>
+          <text class="td" x="870" y="169" text-anchor="middle">listed in connections</text>
+          <rect class="box b-llm" x="800" y="210" width="140" height="70" rx="8"/>
+          <text class="tt" x="870" y="236" text-anchor="middle">LLM server</text>
+          <text class="td" x="870" y="254" text-anchor="middle">LM Studio :1234</text>
+          <text class="td" x="870" y="269" text-anchor="middle">or Azure OpenAI</text>
+          <rect class="box b-vec" x="800" y="305" width="140" height="60" rx="8"/>
+          <text class="tt" x="870" y="331" text-anchor="middle">Vector store</text>
+          <text class="td" x="870" y="349" text-anchor="middle">JSON file on a volume</text>
+          <!-- arrows -->
+          <path class="arr" d="M90 165 V75 H240"/>
+          <text class="tl" x="165" y="66" text-anchor="middle">(1) sign in, get ID token</text>
+          <path class="arr" d="M160 200 H240"/>
+          <text class="tl" x="200" y="192" text-anchor="middle">(2) load app</text>
+          <path class="arr" d="M90 235 V385 H580 V350"/>
+          <text class="tl" x="335" y="378" text-anchor="middle">(3) every API call: Authorization: Bearer ID token</text>
+          <text class="tl" x="335" y="404" text-anchor="middle">CORS only allows the origin set in FRONTEND_URL</text>
+          <path class="arr" d="M490 75 H420"/>
+          <text class="tl" x="455" y="30" text-anchor="middle">signing keys (JWKS)</text>
+          <path class="arr" d="M670 70 H800"/><text class="tl" x="735" y="62" text-anchor="middle">conversations, models</text>
+          <path class="arr" d="M670 155 H800"/><text class="tl" x="735" y="147" text-anchor="middle">read-only SELECT</text>
+          <path class="arr" d="M670 245 H800"/><text class="tl" x="735" y="237" text-anchor="middle">chat + embeddings</text>
+          <path class="arr" d="M670 335 H800"/><text class="tl" x="735" y="327" text-anchor="middle">index read / write</text>
+        </svg>
+      </div>
+      <figcaption>Five systems, five colours; the same colours mark them in the request flow below. Source databases are not configured by environment variables: their host and password are rows in the app database, entered through the UI.</figcaption>
+    </figure>
+  </section>
+
+  <section id="startup">
+    <h2>Startup</h2>
+    <p>What the backend does between <code>node dist/index.js</code> and accepting traffic, and where it can stop.</p>
+    <figure>
+      <div class="fig"><svg id="fig-startup" role="img" aria-label="Backend startup in seven steps from reading settings to graceful shutdown, with the failure behaviour of each step."></svg></div>
+      <figcaption>The only step that can stop the process is <code>initDb()</code>. The vector index rebuild runs in the background and never blocks start.</figcaption>
+    </figure>
+  </section>
+
+  <section id="request">
+    <h2>One question, end to end</h2>
+    <p>The same pipeline serves <code>POST /api/chat</code> and <code>POST /api/chat/stream</code>. The stream sends a <code>progress</code> event after each step and a final <code>result</code> event.</p>
+    <figure>
+      <div class="fig"><svg id="fig-request" role="img" aria-label="The twelve functions a question passes through, each with the systems it calls, including the validate and repair loop."></svg></div>
+      <figcaption>Chips on the right show which system each step calls. Steps 3 to 10 are model calls, so most of the 1 to 5 minutes is spent waiting on the LLM server. The validate and repair loop (step 7) is where slow runs come from.</figcaption>
+    </figure>
+  </section>
+
+  <section id="model">
+    <h2>Model lifecycle</h2>
+    <p>The semantic model (entities, KPIs, metrics, descriptions) is data in the app database, not code. Changing it is an operational action.</p>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 960 200" role="img" aria-label="A model is created, saved as a draft, validated, published and then indexed. Publishing deletes the previous published row.">
+          <rect class="box" x="20" y="30" width="150" height="92" rx="8"/>
+          <text class="tt" x="95" y="54" text-anchor="middle">Create</text>
+          <text class="td" x="95" y="74" text-anchor="middle">generate from schema,</text>
+          <text class="td" x="95" y="89" text-anchor="middle">upload or import</text>
+          <text class="td" x="95" y="108" text-anchor="middle">/api/semantic-model/…</text>
+          <rect class="box b-app" x="210" y="30" width="150" height="92" rx="8"/>
+          <text class="tt" x="285" y="54" text-anchor="middle">Draft</text>
+          <text class="td" x="285" y="74" text-anchor="middle">row in semantic_</text>
+          <text class="td" x="285" y="89" text-anchor="middle">model_versions,</text>
+          <text class="td" x="285" y="104" text-anchor="middle">status = draft</text>
+          <rect class="box" x="400" y="30" width="150" height="92" rx="8"/>
+          <text class="tt" x="475" y="54" text-anchor="middle">Validate</text>
+          <text class="td" x="475" y="74" text-anchor="middle">checks references,</text>
+          <text class="td" x="475" y="89" text-anchor="middle">metrics and KPIs</text>
+          <text class="td" x="475" y="108" text-anchor="middle">POST …/validate</text>
+          <rect class="box b-warn" x="590" y="30" width="150" height="92" rx="8"/>
+          <text class="tt" x="665" y="54" text-anchor="middle">Publish</text>
+          <text class="td" x="665" y="74" text-anchor="middle">becomes the live</text>
+          <text class="td" x="665" y="89" text-anchor="middle">model; every other</text>
+          <text class="td" x="665" y="104" text-anchor="middle">row is deleted</text>
+          <rect class="box b-vec" x="780" y="30" width="150" height="92" rx="8"/>
+          <text class="tt" x="855" y="54" text-anchor="middle">Index</text>
+          <text class="td" x="855" y="74" text-anchor="middle">embeddings written to</text>
+          <text class="td" x="855" y="89" text-anchor="middle">the vector store;</text>
+          <text class="td" x="855" y="104" text-anchor="middle">chat reads this</text>
+          <path class="arr" d="M170 76 H210"/><path class="arr" d="M360 76 H400"/><path class="arr" d="M550 76 H590"/><path class="arr" d="M740 76 H780"/>
+          <text class="tw" x="665" y="150" text-anchor="middle">no rollback: copy the table before publishing</text>
+          <text class="tl" x="20" y="176">Separate action: POST /api/connections stores a source DB password encrypted with SECRET_KEY.</text>
+        </svg>
+      </div>
+      <figcaption>Publishing replaces the previous published row, so the only undo is a copy you took beforehand. Chat answers change the moment the new model is published and indexed.</figcaption>
+    </figure>
+  </section>
+
+  <section id="config">
+    <h2>Configuration</h2>
+    <p>Frontend values are fixed when the image is built. Backend values are read when the container starts.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Variable</th><th>Applies to</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>VITE_API_BASE_URL</td><td class="w"><span class="tag">build arg</span></td><td class="w">Public URL of the backend that the browser calls. Default http://localhost:8000.</td></tr>
+        <tr><td>VITE_AZURE_ENTRA_TENANT_ID<br>VITE_AZURE_ENTRA_CLIENT_ID<br>VITE_AZURE_ENTRA_AUTHORITY<br>VITE_AZURE_ENTRA_REDIRECT_URI</td><td class="w"><span class="tag">build arg</span></td><td class="w">Microsoft sign-in for the browser. The redirect URI must be registered on the Entra app and equal the frontend's public URL.</td></tr>
+        <tr><td>AZURE_ENTRA_TENANT_ID<br>AZURE_ENTRA_CLIENT_ID</td><td class="w"><span class="tag req">backend, required</span></td><td class="w">Same tenant and client id as above, used to verify tokens. Without them every API route except health returns 401.</td></tr>
+        <tr><td>DB_HOST DB_PORT DB_NAME<br>DB_USER DB_PASSWORD</td><td class="w"><span class="tag req">backend, required</span></td><td class="w">The app database. Tables are created on first start.</td></tr>
+        <tr><td>SECRET_KEY</td><td class="w"><span class="tag req">backend, required</span></td><td class="w">Encrypts the stored source-DB passwords. Keep it constant: a new key makes saved connections undecryptable.</td></tr>
+        <tr><td>FRONTEND_URL</td><td class="w"><span class="tag">backend</span></td><td class="w">The one origin CORS allows. Default http://localhost:5173.</td></tr>
+        <tr><td>LLM_PROVIDER</td><td class="w"><span class="tag">backend</span></td><td class="w"><code>lmstudio</code> (default) or <code>azure_openai</code>.</td></tr>
+        <tr><td>LM_STUDIO_BASE_URL<br>LM_STUDIO_API_KEY</td><td class="w"><span class="tag">backend</span></td><td class="w">LLM endpoint. In compose, http://host.docker.internal:1234/v1.</td></tr>
+        <tr><td>LM_STUDIO_MODEL<br>SEMANTIC_PLANNER_MODEL<br>TOOL_CALLING_MODEL<br>SQL_AGENT_MODEL<br>LM_STUDIO_EMBEDDING_MODEL</td><td class="w"><span class="tag">backend</span></td><td class="w">Four chat roles plus embeddings. All must be loaded on the LLM server; an empty role falls back to the main chat model.</td></tr>
+        <tr><td>AZURE_OPENAI_ENDPOINT, _API_KEY,<br>_API_VERSION, _CHAT_DEPLOYMENT,<br>_EMBEDDING_DEPLOYMENT</td><td class="w"><span class="tag">backend</span></td><td class="w">Used when LLM_PROVIDER is azure_openai.</td></tr>
+        <tr><td>MAX_QUERY_ROWS · QUERY_TIMEOUT_SECONDS<br>MAX_SQL_REPAIR_ATTEMPTS · LLM_TIMEOUT_SECONDS</td><td class="w"><span class="tag">backend</span></td><td class="w">Row cap 1000, query timeout 30 s, repair attempts 2, LLM call timeout 180 s (compose defaults).</td></tr>
+        <tr><td>VECTOR_STORE_PATH</td><td class="w"><span class="tag">backend</span></td><td class="w">Folder for semantic_index.json. Compose mounts the volume <code>backend_data</code> at /app/data.</td></tr>
+        <tr><td>KPI_PREFERENCE_MARGIN · RAG_SCORE_THRESHOLD<br>CONNECTION_ROUTING_*</td><td class="w"><span class="tag">backend</span></td><td class="w">Matching thresholds. Leave at the defaults unless tuning answers.</td></tr>
+        <tr><td>APP_ENV · LOG_LEVEL<br>BACKEND_HOST · BACKEND_PORT</td><td class="w"><span class="tag">backend</span></td><td class="w">Environment label, log level, bind address (0.0.0.0) and port (8000).</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="api">
+    <h2>Endpoints and logs</h2>
+    <p>Health is the only route without a login. Everything else needs <code>Authorization: Bearer &lt;Entra ID token&gt;</code>.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Route</th><th>Access</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td>GET /api/health</td><td class="w"><span class="tag pub">public</span></td><td class="w">Liveness probe. Returns {"status":"ok"}; does not check the database or the LLM.</td></tr>
+        <tr><td>POST /api/chat<br>POST /api/chat/stream</td><td class="w"><span class="tag">token</span></td><td class="w">Run a question. The stream version is Server-Sent Events: <code>progress</code> events, then <code>result</code>.</td></tr>
+        <tr><td>/api/chat/conversations…</td><td class="w"><span class="tag">token</span></td><td class="w">List, read and delete the signed-in user's conversations.</td></tr>
+        <tr><td>/api/connections…</td><td class="w"><span class="tag">token</span></td><td class="w">Create, test, update, delete and set the default source database.</td></tr>
+        <tr><td>/api/semantic-model…</td><td class="w"><span class="tag">token</span></td><td class="w">Versions, validate, publish, index, generate, import, upload, table and relationship suggestions.</td></tr>
+        <tr><td>/api/kpis · /api/metrics</td><td class="w"><span class="tag">token</span></td><td class="w">Create, edit, enable and disable KPIs and metrics.</td></tr>
+        <tr><td>/api/dashboard/widgets</td><td class="w"><span class="tag">token</span></td><td class="w">Pinned charts per user.</td></tr>
+        <tr><td>GET /api/logs?level=&amp;q=&amp;limit=</td><td class="w"><span class="tag">token</span></td><td class="w">Recent backend log lines (limit up to 2000).</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:14px">Logs are JSON lines on stdout with <code>timestamp</code>, <code>level</code>, <code>logger</code>, <code>message</code>, <code>request_id</code> and <code>conversation_id</code>. Messages worth a dashboard or alert:</p>
+    <div class="scroll"><table>
+      <thead><tr><th>message</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>startup_complete · server_listening</td><td class="w">App database reached, port bound. Ready.</td></tr>
+        <tr><td>startup_rag_index_heal_failed</td><td class="w">Vector index could not be rebuilt at start (embeddings endpoint down). Chat will not find KPIs.</td></tr>
+        <tr><td>agent_step_completed</td><td class="w">One pipeline step finished; has <code>agent</code>, <code>tool</code> and <code>elapsed_ms</code>. Use it for per-step latency.</td></tr>
+        <tr><td>sql_repair_attempt</td><td class="w">The model's first SQL failed validation. Frequent repeats mean the SQL model is struggling.</td></tr>
+        <tr><td>sql_deterministic_fallback_recovered</td><td class="w">Repairs failed and the code built the SQL itself.</td></tr>
+        <tr><td>agent_step_max_attempts_exceeded</td><td class="w">A step hit its 3-try limit; the user sees a "rephrase your question" message.</td></tr>
+        <tr><td>connection_password_decrypt_failed</td><td class="w">A source DB password cannot be decrypted: SECRET_KEY changed.</td></tr>
+        <tr><td>deep_agent_run_finished</td><td class="w">End of a question; <code>elapsed_ms</code> is the total time and <code>errors</code> lists any failure.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="break">
+    <h2>When it breaks</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>You see</th><th>Likely cause</th><th>Check</th></tr></thead>
+      <tbody>
+        <tr><td class="w">Backend exits at start with ETIMEDOUT or ER_ACCESS_DENIED</td><td class="w">App MySQL unreachable or wrong credentials</td><td class="w">Network path from the container to DB_HOST:3306 (VPN, security group, allowed IPs); DB_USER and DB_PASSWORD</td></tr>
+        <tr><td class="w">Every API call returns 401 "Sign-in is not configured on the server"</td><td class="w">AZURE_ENTRA_TENANT_ID or AZURE_ENTRA_CLIENT_ID missing on the backend</td><td class="w">Set both on the backend container</td></tr>
+        <tr><td class="w">401 "Invalid sign-in token"</td><td class="w">Token from another tenant or app, or expired</td><td class="w">Frontend VITE_AZURE_ENTRA_* (baked at build) must match the backend values</td></tr>
+        <tr><td class="w">Browser blocks calls with a CORS error</td><td class="w">FRONTEND_URL is not the page's exact origin</td><td class="w">Set FRONTEND_URL to the frontend's public URL, scheme and port included</td></tr>
+        <tr><td class="w">A question hangs on one step, then fails</td><td class="w">LLM server unreachable, model not loaded, or the 180 s LLM timeout</td><td class="w">Reach LM_STUDIO_BASE_URL from inside the container; confirm the four chat models and the embedding model are loaded</td></tr>
+        <tr><td class="w">Saved connection fails to test</td><td class="w">SECRET_KEY changed after the password was saved</td><td class="w">Restore the old key or re-enter the connection passwords</td></tr>
+        <tr><td class="w">New KPIs or descriptions have no effect</td><td class="w">Draft not published, or vector index stale</td><td class="w">Publish; POST /api/semantic-model/index; look for index rebuild logs</td></tr>
+        <tr><td class="w">Answers take 3 to 5 minutes</td><td class="w">Each LLM step takes 20 to 60 s on a local model; repair loops add more</td><td class="w">Proxy and read timeouts of at least 5 minutes; turn off response buffering for the SSE route</td></tr>
+        <tr><td class="w">Log shows "recovered via deterministic fallback"</td><td class="w">The SQL model kept failing validation</td><td class="w">Not an outage. Check the SQL model; time-bucketed trends cannot use the fallback and will stop</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="gaps">
+    <h2>Gaps in the deploy files</h2>
+    <p>Found by reading the Dockerfiles, compose file and code. I did not build the images or run compose.</p>
+    <ul class="gaps">
+      <li><b>Backend sign-in variables are not passed.</b> <code>docker-compose.yml</code> gives the frontend build the VITE_AZURE_ENTRA_* values but gives the backend no AZURE_ENTRA_TENANT_ID or AZURE_ENTRA_CLIENT_ID, so a compose deployment answers 401 to every API call. They are also missing from the root <code>.env.example</code>.</li>
+      <li><b>nginx does not proxy the API.</b> It serves static files only. The browser calls the backend directly at VITE_API_BASE_URL, so the backend needs its own public URL and FRONTEND_URL must match the frontend's.</li>
+      <li><b>Frontend settings are baked in.</b> Changing the API URL or Entra ids needs an image rebuild, not a restart.</li>
+      <li><b>No health checks.</b> Neither Dockerfile nor compose defines one, although <code>/api/health</code> exists. Add one on the backend; it only proves the process is up.</li>
+      <li><b>No schema migrations.</b> <code>initDb()</code> creates missing tables only. A column change must be applied by hand.</li>
+      <li><b>One backend replica.</b> The vector index is a JSON file with brute-force search, written by the process that rebuilds it. Do not run several replicas against separate copies.</li>
+      <li><b>Image excludes the index and .env.</b> <code>data</code> and <code>.env</code> are in <code>.dockerignore</code>, which is right for secrets, but a new container always rebuilds the index and needs the embeddings endpoint at start.</li>
+      <li class="ok"><b>Fine as is.</b> Multi-stage builds, production dependencies only in the backend image, graceful shutdown on SIGTERM, JSON logs on stdout, and the app database needs no setup beyond credentials.</li>
+    </ul>
+    <p class="note">Read from the Analytics 4 folder: Dockerfiles, <code>docker-compose.yml</code>, <code>nginx.conf</code>, <code>index.ts</code>, <code>app.ts</code>, the chat route, the DeepAgent and the database setup. Nothing here was run in Docker.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  /* ---------- startup flow ---------- */
+  var startup = [
+    ["main()", "getSettings() reads env: ports, DB_*, LLM_*, Entra ids",
+      ["compose refuses to start without DB_HOST, DB_NAME,", "DB_USER, DB_PASSWORD and SECRET_KEY"], false],
+    ["configureLogging(LOG_LEVEL)", "JSON lines on stdout",
+      ["fields: timestamp, level, logger, message,", "request_id, conversation_id"], false],
+    ["initDb()", "connect to app MySQL · CREATE TABLE IF NOT EXISTS × 5",
+      ["exit code 1 on failure: ETIMEDOUT (network) or", "ER_ACCESS_DENIED (credentials). No migrations."], true],
+    ["createApp()", "cors → json 10 MB → /api/health → requireUser → routers",
+      ["/api/health is the only route without a login;", "CORS allows only FRONTEND_URL"], false],
+    ["app.listen(BACKEND_HOST, BACKEND_PORT)", "logs startup_complete, then server_listening",
+      ["ready for traffic; probe GET /api/health", "(returns {status: ok}, does not touch the DB)"], false],
+    ["healMissingRagIndexes()  · background", "rebuilds the vector index for models that have none",
+      ["backend/data is not in the image, so a new container", "rebuilds; needs embeddings; failure is only logged"], false],
+    ["SIGINT / SIGTERM → shutdown()", "server.close() → disposeDb() → exit 0",
+      ["stop waits for open connections, and LLM calls can", "take minutes: set a stop grace period to match"], false]
+  ];
+  var s1 = document.getElementById("fig-startup");
+  var pitch = 86, bh = 58, top = 14;
+  var H1 = top + pitch * startup.length - (pitch - bh) + 14;
+  s1.setAttribute("viewBox", "0 0 960 " + H1);
+  startup.forEach(function (st, i) {
+    var y = top + i * pitch;
+    s1.appendChild(el("rect", { "class": "box", x: 30, y: y, width: 430, height: bh, rx: 6 }));
+    s1.appendChild(el("text", { "class": "tm", x: 46, y: y + 24 }, st[0]));
+    s1.appendChild(el("text", { "class": "td", x: 46, y: y + 44 }, st[1]));
+    s1.appendChild(el("rect", { "class": "box" + (st[3] ? " b-warn" : ""), x: 520, y: y, width: 410, height: bh, rx: 6 }));
+    s1.appendChild(el("text", { "class": st[3] ? "tw" : "td", x: 536, y: y + 24 }, st[2][0]));
+    s1.appendChild(el("text", { "class": st[3] ? "tw" : "td", x: 536, y: y + 42 }, st[2][1]));
+    s1.appendChild(el("path", { "class": "arr", d: "M460 " + (y + bh / 2) + " H520" }));
+    if (i < startup.length - 1) s1.appendChild(el("path", { "class": "arr", d: "M245 " + (y + bh) + " V" + (y + pitch) }));
+  });
+
+  /* ---------- request flow ---------- */
+  var CH = { llm: "b-llm", app: "b-app", src: "b-src", vec: "b-vec", auth: "b-auth" };
+  var steps = [
+    ["POST /api/chat/stream", "requireUser verifies the Entra ID token and sets the user id", [["auth", "Entra signing keys"]]],
+    ["getOwnConversation() · addMessage('user')", "load or create the user's conversation, store the question", [["app", "App DB"]]],
+    ["buildDeepAgent() → run() → runOrchestratorLoop()", "tool-calling model picks tools; code enforces order, 3 tries per tool", [["llm", "LLM · tool-calling model"]]],
+    ["plan_query → PlannerAgent.plan()", "reads the question into intent, subject, dimensions, filters, time", [["llm", "LLM · planner model"]]],
+    ["DataSourceRouter.route()", "decides which data source (database) the question is about", [["vec", "Vector store"], ["app", "App DB"], ["llm", "LLM · embeddings"]]],
+    ["resolve_semantics → SemanticResolver.resolvePlan()", "matches KPI / metric / measure / dimensions; dates become filters", [["vec", "Vector store"], ["llm", "LLM · embeddings"]]],
+    ["generate_sql → SQLAgent", "builds grounding context from the model; LLM writes one SELECT", [["llm", "LLM · SQL model"]]],
+    ["validate_sql → validator.ts", "read-only SELECT, tables and columns exist in the model, joins used", []],
+    ["execute_query → ExecutionAgent", "decrypt the connection password, run the SELECT, cap rows and time", [["src", "Source DB"]]],
+    ["recommend_visualization → VisualizationAgent", "chooses a chart from the shape of the result", [["llm", "LLM · chat model"]]],
+    ["generate_response → ResponseAgent", "writes summary and insights from the returned rows", [["llm", "LLM · chat model"]]],
+    ["toChatResponse() · addMessage('assistant')", "stores the answer; the SSE 'result' event closes the stream", [["app", "App DB"]]]
+  ];
+  var s2 = document.getElementById("fig-request");
+  var p2 = 84, h2 = 56, t2 = 20;
+  var H2 = t2 + p2 * steps.length - (p2 - h2) + 20;
+  s2.setAttribute("viewBox", "0 0 960 " + H2);
+  steps.forEach(function (st, i) {
+    var y = t2 + i * p2;
+    s2.appendChild(el("rect", { "class": "box", x: 20, y: y, width: 560, height: h2, rx: 6 }));
+    s2.appendChild(el("text", { "class": "tm", x: 36, y: y + 24 }, st[0]));
+    s2.appendChild(el("text", { "class": "td", x: 36, y: y + 44 }, st[1]));
+    var cx = 610;
+    st[2].forEach(function (c) {
+      var w = Math.round(c[1].length * 6.3 + 20);
+      s2.appendChild(el("rect", { "class": "chip " + CH[c[0]], x: cx, y: y + 16, width: w, height: 24, rx: 12 }));
+      s2.appendChild(el("text", { "class": "chip-t", x: cx + w / 2, y: y + 32, "text-anchor": "middle" }, c[1]));
+      cx += w + 8;
+    });
+    if (i < steps.length - 1) s2.appendChild(el("path", { "class": "arr", d: "M300 " + (y + h2) + " V" + (y + p2) }));
+  });
+  /* validate loop on step 7 (index 7) */
+  var vy = t2 + 7 * p2;
+  s2.appendChild(el("rect", { "class": "box b-warn", x: 610, y: vy, width: 330, height: h2, rx: 6 }));
+  s2.appendChild(el("text", { "class": "tm", x: 626, y: vy + 19 }, "invalid → repair_sql (up to 2×)"));
+  s2.appendChild(el("text", { "class": "td", x: 626, y: vy + 35 }, "SQLRepairAgent · calls the LLM SQL model"));
+  s2.appendChild(el("text", { "class": "tw", x: 626, y: vy + 50 }, "still invalid → deterministic builder, else STOP"));
+  s2.appendChild(el("path", { "class": "arr-w", d: "M580 " + (vy + h2 / 2) + " H610" }));
+  s2.appendChild(el("path", { "class": "arr-w", d: "M775 " + vy + " V" + (vy - 14) + " H480 V" + vy }));
+  s2.appendChild(el("text", { "class": "tl", x: 640, y: vy - 19 }, "validate again"));
+})();
+</script>

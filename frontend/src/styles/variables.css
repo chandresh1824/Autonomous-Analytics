@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Semantic design tokens.
+   --------------------------------------------------------------------------
+   These are the names component CSS is written against. Each one only maps a
+   token from `theme.css` onto a role, so re-skinning the app never requires
+   touching this file — edit `theme.css` instead.
+   ========================================================================== */
+
+@import './theme.css';
+
+:root {
+  /* Surfaces */
+  --color-bg: transparent; /* the canvas gradient lives on .app-shell */
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-veil: var(--surface-veil);
+  --color-surface-veil-strong: var(--surface-veil-strong);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* Text */
+  --color-heading: var(--ink-900);
+  --color-text: var(--ink-700);
+  --color-text-secondary: var(--ink-500);
+  --color-text-muted: var(--ink-400);
+  --color-text-inverse: #ffffff;
+
+  /* Accent (primary action) */
+  --color-accent: var(--brand-primary);
+  --color-accent-hover: var(--brand-primary-hover);
+  --color-accent-soft: var(--brand-primary-soft);
+  --color-accent-soft-border: var(--brand-primary-soft-border);
+  --color-on-accent: var(--brand-on-primary);
+
+  /* Status */
+  --color-success: var(--status-success);
+  --color-success-soft: var(--status-success-soft);
+  --color-danger: var(--status-danger);
+  --color-danger-soft: var(--status-danger-soft);
+  --color-warning: var(--status-warning);
+  --color-warning-soft: var(--status-warning-soft);
+
+  /* Chat bubbles - the question carries a soft brand tint so it reads as
+     the user's turn at a glance, against the white answer card. */
+  --color-user-bubble: var(--brand-50);
+  --color-user-bubble-text: var(--ink-800);
+  --color-user-bubble-border: var(--brand-200);
+  --color-assistant-bubble: var(--surface);
+
+  /* Typography */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 1.875rem;
+  --fs-3xl: 2.25rem;
+
+  /* Answer-card type scale - medium screens (721-1440px) by default; small
+     (<=720px) and large (>=1441px) screens retune it in app.css. Sizes are
+     rem so they still follow the browser's own text-size setting. */
+  --type-section-title: 0.6875rem; /* SUMMARY, KEY HIGHLIGHTS ... */
+  --type-lead: 0.9375rem; /* the summary paragraph */
+  --type-body: 0.875rem; /* highlights, notices, body copy */
+  --type-data: 0.8125rem; /* tables, chart titles */
+  --type-meta: 0.75rem; /* answer time, confidence, badges */
+  --type-caption: 0.75rem; /* chart notes, SQL, references */
+  --type-lead-line: 1.6;
+  --type-body-line: 1.55;
+  --type-marker-size: 20px; /* numbered-list badge */
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Shape */
+  --radius-sm: var(--theme-radius-sm);
+  --radius-md: var(--theme-radius-md);
+  --radius-lg: var(--theme-radius-lg);
+  --radius-xl: var(--theme-radius-xl);
+  --radius-full: var(--theme-radius-full);
+
+  --shadow-sm: var(--theme-shadow-sm);
+  --shadow-md: var(--theme-shadow-md);
+  --shadow-lg: var(--theme-shadow-lg);
+
+  --transition-fast: var(--theme-transition-fast);
+  --transition-base: var(--theme-transition-base);
+
+  /* Layout metrics */
+  --sidebar-width: 280px;
+  --topbar-height: 60px;
+}

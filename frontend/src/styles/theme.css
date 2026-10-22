@@ -1,0 +1,124 @@
+/* ==========================================================================
+   THEME — the single place to re-skin the application.
+   --------------------------------------------------------------------------
+   Everything visual (brand colour, canvas, surfaces, typography, radii,
+   shadows, layout metrics) is declared here as a design token. No component
+   stylesheet hard-codes a colour; `variables.css` only maps these tokens onto
+   the semantic names (--color-accent, --color-surface, …) that the rest of
+   the CSS consumes.
+
+   To change the theme, edit the values in this file only.
+   ========================================================================== */
+
+:root {
+  --brand-50: #eef9fc;
+  --brand-100: #d8f1f6;
+  --brand-200: #b3e4ed;
+  --brand-300: #7fd1e0;
+  --brand-400: #45bad0;
+  --brand-500: #17a2ba;
+  --brand-600: #0e8ba1;
+  --brand-700: #0b6f82;
+
+  --brand-primary: var(--brand-500);
+  --brand-primary-hover: var(--brand-600);
+  --brand-primary-soft: var(--brand-50);
+  --brand-primary-soft-border: var(--brand-200);
+  --brand-on-primary: #ffffff;
+
+  --brand-accent: #f58220;
+  --brand-accent-soft: #fdf0e3;
+
+  /* ------------------------------------------------------------------ ink */
+  --ink-900: #0e1b2c; /* headings */
+  --ink-800: #16283c;
+  --ink-700: #1f3247; /* body text */
+  --ink-500: #56657a; /* secondary text */
+  --ink-400: #7d8a9c; /* muted text */
+  --ink-200: #dde3ea; /* strong border */
+  --ink-100: #e9eef4; /* border */
+  --ink-50: #f4f7fa; /* alt surface */
+
+  /* --------------------------------------------------------------- status */
+  --status-success: #0f9d63;
+  --status-success-soft: #e6f6ee;
+  --status-danger: #e0474c;
+  --status-danger-soft: #fdecec;
+  --status-warning: #b5790a;
+  --status-warning-soft: #fdf3e0;
+  --status-info: var(--brand-600);
+  --status-info-soft: var(--brand-50);
+
+  /* ----------------------------------------------------------- app canvas */
+  /* The page background: a soft lavender→white→sky wash with a faint dot
+     grid layered on top (see `.app-shell` in app.css). */
+  --app-gradient: linear-gradient(
+    120deg,
+    #ece7fb 0%,
+    #f6f4fe 22%,
+    #ffffff 52%,
+    #f0f8fd 78%,
+    #e8f4fb 100%
+  );
+  --app-dot-color: rgba(28, 56, 92, 0.07);
+  --app-dot-size: 18px;
+  --app-dot-radius: 1px;
+
+  /* -------------------------------------------------------------- surface */
+  --surface: #ffffff;
+  --surface-alt: var(--ink-50);
+  /* Translucent surface used by panels that float over the gradient canvas. */
+  --surface-veil: rgba(255, 255, 255, 0.78);
+  --surface-veil-strong: rgba(255, 255, 255, 0.92);
+  --border: var(--ink-100);
+  --border-strong: var(--ink-200);
+
+  /* --------------------------------------------------------------- footer */
+  --footer-bg: #0b1727;
+  --footer-text: rgba(255, 255, 255, 0.72);
+  --footer-height: 40px;
+
+  /* ----------------------------------------------------------- typography */
+  --theme-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --theme-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  /* ---------------------------------------------------------------- shape */
+  --theme-radius-sm: 6px;
+  --theme-radius-md: 8px;
+  --theme-radius-lg: 12px;
+  --theme-radius-xl: 16px;
+  --theme-radius-full: 999px;
+
+  --theme-shadow-sm: 0 1px 2px rgba(14, 27, 44, 0.06);
+  --theme-shadow-md: 0 6px 20px rgba(14, 27, 44, 0.08);
+  --theme-shadow-lg: 0 16px 44px rgba(14, 27, 44, 0.12);
+  --theme-shadow-rail: 0 10px 34px rgba(14, 27, 44, 0.14);
+
+  /* --------------------------------------------------------------- motion */
+  --theme-transition-fast: 120ms ease;
+  --theme-transition-base: 200ms ease;
+
+  /* --------------------------------------------------------------- layout */
+  --rail-width: 56px; /* the floating left navigation rail */
+  --rail-gutter: 12px; /* gap between rail and viewport edge */
+  --content-max-width: 1180px;
+  /* Height of the page header once it condenses on scroll - anything that
+     sticks below it (the settings section nav) offsets by this. */
+  --sticky-header-height: 60px;
+  --hero-max-width: 1080px;
+
+  /* ---------------------------------------------------- chart categorical */
+  /* Fixed order — never cycled or reassigned, so a series keeps its colour. */
+  --chart-1: #17a2ba;
+  --chart-2: #f58220;
+  --chart-3: #6f5bd8;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #0f9d63;
+  --chart-7: #2a78d6;
+  --chart-8: #e0474c;
+  --chart-grid: #e6ebf1;
+  --chart-axis: #c3ccd7;
+  --chart-muted: var(--ink-400);
+}

@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: production
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: 8000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      LLM_PROVIDER: ${LLM_PROVIDER:-lmstudio}
+      LM_STUDIO_BASE_URL: ${LM_STUDIO_BASE_URL:-http://host.docker.internal:1234/v1}
+      LM_STUDIO_API_KEY: ${LM_STUDIO_API_KEY:-lm-studio}
+      LM_STUDIO_MODEL: ${LM_STUDIO_MODEL:-}
+      LM_STUDIO_EMBEDDING_MODEL: ${LM_STUDIO_EMBEDDING_MODEL:-}
+      SEMANTIC_PLANNER_MODEL: ${SEMANTIC_PLANNER_MODEL:-}
+      TOOL_CALLING_MODEL: ${TOOL_CALLING_MODEL:-}
+      SQL_AGENT_MODEL: ${SQL_AGENT_MODEL:-}
+      SEMANTIC_GENERATION_CONCURRENCY: ${SEMANTIC_GENERATION_CONCURRENCY:-1}
+      SEMANTIC_GENERATION_BATCH_SIZE: ${SEMANTIC_GENERATION_BATCH_SIZE:-6}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-180}
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      VECTOR_STORE_PATH: ./data/vector_store
+      MAX_QUERY_ROWS: 1000
+      QUERY_TIMEOUT_SECONDS: 30
+      MAX_SQL_REPAIR_ATTEMPTS: 2
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+    volumes:
+      - backend_data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        VITE_AZURE_ENTRA_TENANT_ID: ${VITE_AZURE_ENTRA_TENANT_ID:-}
+        VITE_AZURE_ENTRA_CLIENT_ID: ${VITE_AZURE_ENTRA_CLIENT_ID:-}
+        VITE_AZURE_ENTRA_AUTHORITY: ${VITE_AZURE_ENTRA_AUTHORITY:-}
+        VITE_AZURE_ENTRA_REDIRECT_URI: ${VITE_AZURE_ENTRA_REDIRECT_URI:-http://localhost:5173}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:
